@@ -1102,3 +1102,834 @@ graph TB
 - **Monitoreo** - Observabilidad completa
 
 **¡El flujo está completamente diagramado y optimizado! 🚀**
+
+
+
+
+
+
+
+
+# Integración API Citadel - Documentación Técnica
+
+## Tabla de Contenidos
+1. [Objetivo General](#objetivo-general)
+2. [Objetivos Específicos](#objetivos-específicos)
+3. [Descripción del Negocio](#descripción-del-negocio)
+4. [Arquitectura de Integración](#arquitectura-de-integración)
+5. [Endpoints de la API](#endpoints-de-la-api)
+6. [Flujos de Trabajo](#flujos-de-trabajo)
+7. [Implementación Paso a Paso](#implementación-paso-a-paso)
+8. [Modelos de Datos](#modelos-de-datos)
+9. [Manejo de Errores](#manejo-de-errores)
+10. [Consideraciones de Seguridad](#consideraciones-de-seguridad)
+11. [Testing y Validación](#testing-y-validación)
+
+## Objetivo General
+
+Integrar la API de Citadel Services dentro de la aplicación Cryptospace Card Holder para permitir a los usuarios comprar y vender gift cards de diferentes tipos (PlayStation Network, VISA Gift Cards, etc.) de manera automatizada y segura.
+
+## Objetivos Específicos
+
+1. **Autenticación y Autorización**
+   - Implementar sistema de login con la API de Citadel
+   - Gestionar tokens de autenticación de forma segura
+   - Manejar permisos de grupos (seller/buyer)
+
+2. **Funcionalidad de Venta (Push)**
+   - Permitir a usuarios vender gift cards a través de la API
+   - Validar y procesar códigos de gift cards
+   - Gestionar diferentes tipos de gift cards (PlayStation, VISA, etc.)
+
+3. **Funcionalidad de Compra (Pull)**
+   - Permitir a usuarios comprar gift cards disponibles
+   - Consultar inventario disponible
+   - Procesar órdenes de compra
+
+4. **Gestión de Pagos**
+   - Integrar sistema de pagos con la plataforma Citadel
+   - Manejar diferentes métodos de pago
+   - Procesar transacciones de forma segura
+
+5. **Monitoreo y Logging**
+   - Implementar logging de todas las transacciones
+   - Monitorear estado de las operaciones
+   - Generar reportes de actividad
+
+## Descripción del Negocio
+
+La API de Citadel Services es una plataforma que facilita el intercambio de gift cards digitales. Los usuarios pueden:
+
+- **Vender gift cards**: Subir códigos de gift cards que poseen para venderlos a otros usuarios
+- **Comprar gift cards**: Adquirir gift cards de diferentes tipos y denominaciones
+- **Gestionar inventario**: Mantener un catálogo de gift cards disponibles
+- **Procesar pagos**: Manejar transacciones monetarias de forma segura
+
+### Tipos de Gift Cards Soportados
+- PlayStation Network Gift Cards
+- VISA Gift Cards
+- Otros tipos según disponibilidad en la API
+
+## Arquitectura de Integración
+
+### Diagrama de Arquitectura General
+
+```mermaid
+graph TB
+    subgraph "Frontend"
+        UI[User Interface]
+        Forms[Gift Card Forms]
+        Dashboard[Dashboard]
+    end
+    
+    subgraph "Django Application"
+        API[Django REST API]
+        Auth[Authentication Service]
+        GC[Gift Card Service]
+        Pay[Payment Service]
+        Notif[Notification Service]
+        Audit[Audit Service]
+    end
+    
+    subgraph "Database"
+        DB[(PostgreSQL)]
+        Cache[(Redis Cache)]
+    end
+    
+    subgraph "External Services"
+        Citadel[Citadel API]
+        Email[Email Service]
+        SMS[SMS Service]
+    end
+    
+    UI --> API
+    Forms --> API
+    Dashboard --> API
+    
+    API --> Auth
+    API --> GC
+    API --> Pay
+    API --> Notif
+    API --> Audit
+    
+    Auth --> DB
+    GC --> DB
+    Pay --> DB
+    Notif --> DB
+    Audit --> DB
+    
+    GC --> Cache
+    Pay --> Cache
+    
+    GC --> Citadel
+    Pay --> Citadel
+    Auth --> Citadel
+    
+    Notif --> Email
+    Notif --> SMS
+    
+    style Citadel fill:#ff9999
+    style DB fill:#99ccff
+    style Cache fill:#99ff99
+```
+
+### Componentes Principales
+
+1. **Citadel API Client**: Cliente para comunicación con la API externa
+2. **Authentication Service**: Gestión de autenticación y tokens
+3. **Gift Card Service**: Lógica de negocio para gift cards
+4. **Payment Service**: Procesamiento de pagos
+5. **Notification Service**: Notificaciones de estado de transacciones
+6. **Audit Service**: Logging y auditoría de operaciones
+
+### Diagrama de Componentes Técnicos
+
+```mermaid
+graph TB
+    subgraph "Presentation Layer"
+        WebUI[Web Interface]
+        MobileUI[Mobile Interface]
+        API[REST API Endpoints]
+    end
+    
+    subgraph "Business Logic Layer"
+        AuthService[Authentication Service]
+        GCService[Gift Card Service]
+        PayService[Payment Service]
+        NotifService[Notification Service]
+        AuditService[Audit Service]
+    end
+    
+    subgraph "Data Access Layer"
+        ORM[Django ORM]
+        Cache[Redis Cache]
+        Queue[Celery Queue]
+    end
+    
+    subgraph "External Integration Layer"
+        CitadelClient[Citadel API Client]
+        EmailClient[Email Client]
+        SMSClient[SMS Client]
+    end
+    
+    subgraph "Data Storage"
+        PostgreSQL[(PostgreSQL)]
+        Redis[(Redis)]
+        Files[File Storage]
+    end
+    
+    subgraph "External Services"
+        CitadelAPI[Citadel API]
+        EmailProvider[Email Provider]
+        SMSProvider[SMS Provider]
+    end
+    
+    WebUI --> API
+    MobileUI --> API
+    
+    API --> AuthService
+    API --> GCService
+    API --> PayService
+    API --> NotifService
+    API --> AuditService
+    
+    AuthService --> ORM
+    GCService --> ORM
+    PayService --> ORM
+    NotifService --> ORM
+    AuditService --> ORM
+    
+    GCService --> Cache
+    PayService --> Cache
+    
+    NotifService --> Queue
+    AuditService --> Queue
+    
+    GCService --> CitadelClient
+    PayService --> CitadelClient
+    AuthService --> CitadelClient
+    
+    NotifService --> EmailClient
+    NotifService --> SMSClient
+    
+    ORM --> PostgreSQL
+    Cache --> Redis
+    Queue --> Redis
+    
+    CitadelClient --> CitadelAPI
+    EmailClient --> EmailProvider
+    SMSClient --> SMSProvider
+    
+    style CitadelAPI fill:#ff9999
+    style PostgreSQL fill:#99ccff
+    style Redis fill:#99ff99
+```
+
+### Flujo de Datos
+
+```
+Usuario → Frontend → Django API → Citadel Integration → Citadel API
+                ↓
+            Base de Datos Local
+```
+
+## Endpoints de la API
+
+### 1. Autenticación
+```
+POST /api/v1/login
+```
+**Propósito**: Autenticar usuario y obtener token de acceso
+**Parámetros**:
+- `username`: Nombre de usuario
+- `password`: Contraseña
+- `multiFactorToken`: Token de autenticación de dos factores (opcional)
+
+**Respuesta**: Token de autenticación en header `auth_token`
+
+### 2. Gestión de Pagos (Push - Venta)
+```
+POST /api/v1/groups/{sellerGroupId}/payments
+```
+**Propósito**: Crear un nuevo pago/gift card para venta
+**Parámetros**:
+- `groupId`: ID del grupo vendedor
+- `source`: Origen del pago ("manual")
+- `currency_code`: Código de moneda (ej: "USD")
+- `code`: Código de la gift card
+- `pin`: PIN de la gift card (para PlayStation)
+- `payment_method_name`: Tipo de gift card
+- `value`: Valor de la gift card
+- `cvv`: CVV (para VISA Gift Cards)
+- `expirationDate`: Fecha de expiración (para VISA Gift Cards)
+
+### 3. Permisos de API (Push)
+```
+GET /api/v1/groups/{sellerGroupId}/sell-api-permissions/push
+```
+**Propósito**: Verificar permisos para operaciones de venta
+
+### 4. Disponibilidad de Venta (Push)
+```
+GET /api/v1/groups/{sellerGroupId}/sell-api/available/push/{buyerGroupId}
+```
+**Propósito**: Consultar disponibilidad para venta a un grupo específico
+**Parámetros**:
+- `noCache`: true/false
+- `currencyCode`: Código de moneda
+
+### 5. Venta de Gift Cards
+```
+POST /api/v1/groups/{sellerGroupId}/sell-api/sell/{buyerGroupId}
+```
+**Propósito**: Ejecutar venta de gift cards
+**Parámetros**:
+- `externalOrderId`: ID de orden externa (opcional)
+- `cards`: Array de gift cards a vender
+  - `count`: Cantidad
+  - `denomination`: Denominación
+  - `sellApiSku`: SKU de la gift card
+  - `currencyCode`: Código de moneda
+
+### 6. Permisos de API (Pull)
+```
+GET /api/v1/groups/{buyerGroupId}/sell-api-permissions/pull
+```
+**Propósito**: Verificar permisos para operaciones de compra
+
+### 7. Disponibilidad de Compra (Pull)
+```
+GET /api/v1/groups/{buyerGroupId}/sell-api/available
+```
+**Propósito**: Consultar gift cards disponibles para compra
+
+### 8. Compra de Gift Cards
+```
+POST /api/v1/groups/{buyerGroupId}/sell-api/purchase
+```
+**Propósito**: Ejecutar compra de gift cards
+
+## Flujos de Trabajo
+
+### Diagrama de Flujo de Venta (Push)
+
+```mermaid
+sequenceDiagram
+    participant U as Usuario
+    participant F as Frontend
+    participant API as Django API
+    participant GC as Gift Card Service
+    participant Auth as Auth Service
+    participant C as Citadel API
+    participant DB as Database
+    
+    U->>F: Ingresa datos gift card
+    F->>API: POST /api/gift-cards/sell
+    API->>Auth: Validar usuario
+    Auth->>DB: Verificar permisos
+    Auth-->>API: Usuario autorizado
+    
+    API->>GC: Procesar venta
+    GC->>GC: Validar datos gift card
+    GC->>C: POST /api/v1/login
+    C-->>GC: Token de autenticación
+    
+    GC->>C: POST /api/v1/groups/{id}/payments
+    C-->>GC: Pago creado
+    
+    GC->>C: GET /api/v1/groups/{id}/sell-api-permissions/push
+    C-->>GC: Permisos verificados
+    
+    GC->>C: GET /api/v1/groups/{id}/sell-api/available/push/{buyerId}
+    C-->>GC: Disponibilidad confirmada
+    
+    GC->>C: POST /api/v1/groups/{id}/sell-api/sell/{buyerId}
+    C-->>GC: Venta ejecutada
+    
+    GC->>DB: Guardar transacción
+    GC-->>API: Venta completada
+    API-->>F: Respuesta exitosa
+    F-->>U: Confirmación de venta
+```
+
+### Diagrama de Flujo de Compra (Pull)
+
+```mermaid
+sequenceDiagram
+    participant U as Usuario
+    participant F as Frontend
+    participant API as Django API
+    participant GC as Gift Card Service
+    participant Auth as Auth Service
+    participant C as Citadel API
+    participant DB as Database
+    
+    U->>F: Solicita gift cards disponibles
+    F->>API: GET /api/gift-cards/available
+    API->>Auth: Validar usuario
+    Auth->>DB: Verificar permisos
+    Auth-->>API: Usuario autorizado
+    
+    API->>GC: Consultar disponibilidad
+    GC->>C: POST /api/v1/login
+    C-->>GC: Token de autenticación
+    
+    GC->>C: GET /api/v1/groups/{id}/sell-api-permissions/pull
+    C-->>GC: Permisos verificados
+    
+    GC->>C: GET /api/v1/groups/{id}/sell-api/available
+    C-->>GC: Lista de gift cards disponibles
+    
+    GC-->>API: Gift cards disponibles
+    API-->>F: Lista de opciones
+    F-->>U: Muestra opciones
+    
+    U->>F: Selecciona gift cards
+    F->>API: POST /api/gift-cards/purchase
+    API->>GC: Procesar compra
+    
+    GC->>C: POST /api/v1/groups/{id}/sell-api/purchase
+    C-->>GC: Compra ejecutada
+    
+    GC->>DB: Guardar transacción
+    GC-->>API: Compra completada
+    API-->>F: Gift cards adquiridas
+    F-->>U: Entrega de gift cards
+```
+
+### Diagrama de Estados de Transacción
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: Crear transacción
+    
+    PENDING --> AUTHENTICATING: Iniciar autenticación
+    AUTHENTICATING --> AUTHENTICATED: Token obtenido
+    AUTHENTICATING --> FAILED: Error de autenticación
+    
+    AUTHENTICATED --> PROCESSING: Procesar operación
+    PROCESSING --> COMPLETED: Operación exitosa
+    PROCESSING --> FAILED: Error en procesamiento
+    
+    COMPLETED --> NOTIFIED: Usuario notificado
+    NOTIFIED --> [*]
+    
+    FAILED --> RETRY: Reintentar
+    RETRY --> AUTHENTICATING: Reautenticar
+    RETRY --> FAILED: Máximo reintentos
+    
+    FAILED --> [*]: Operación cancelada
+```
+
+### Flujo de Venta (Push) - Detallado
+
+1. **Autenticación**
+   - Usuario inicia sesión
+   - Sistema obtiene token de Citadel
+   - Valida permisos de venta
+
+2. **Preparación de Gift Card**
+   - Usuario ingresa datos de gift card
+   - Sistema valida formato y tipo
+   - Genera código único de transacción
+
+3. **Envío a Citadel**
+   - Crea pago en sistema Citadel
+   - Verifica disponibilidad de venta
+   - Ejecuta operación de venta
+
+4. **Confirmación**
+   - Recibe confirmación de Citadel
+   - Actualiza estado en sistema local
+   - Notifica al usuario
+
+### Flujo de Compra (Pull) - Detallado
+
+1. **Autenticación**
+   - Usuario inicia sesión
+   - Sistema obtiene token de Citadel
+   - Valida permisos de compra
+
+2. **Consulta de Disponibilidad**
+   - Consulta gift cards disponibles
+   - Filtra por tipo y denominación
+   - Muestra opciones al usuario
+
+3. **Selección y Compra**
+   - Usuario selecciona gift cards
+   - Sistema ejecuta compra
+   - Procesa pago
+
+4. **Entrega**
+   - Recibe gift cards compradas
+   - Actualiza inventario local
+   - Notifica al usuario
+
+## Implementación Paso a Paso
+
+### Fase 1: Configuración Base
+
+1. **Crear nueva app Django**
+   ```bash
+   just manage startapp citadel_integration cardholder/apps/
+   ```
+
+2. **Configurar variables de entorno**
+   ```python
+   # settings/base.py
+   CITADEL_API_BASE_URL = "https://staging-api.citadel-services.com"
+   CITADEL_USERNAME = "your_username"
+   CITADEL_PASSWORD = "your_password"
+   CITADEL_SELLER_GROUP_ID = "your_seller_group_id"
+   CITADEL_BUYER_GROUP_ID = "your_buyer_group_id"
+   ```
+
+3. **Instalar dependencias**
+   ```bash
+   pip install requests python-dotenv
+   ```
+
+### Fase 2: Cliente API
+
+1. **Crear cliente base**
+   ```python
+   # cardholder/apps/citadel_integration/client.py
+   import requests
+   from typing import Dict, Any, Optional
+   from django.conf import settings
+   
+   class CitadelAPIClient:
+       def __init__(self):
+           self.base_url = settings.CITADEL_API_BASE_URL
+           self.session = requests.Session()
+           self.token = None
+   
+       def authenticate(self, username: str, password: str) -> bool:
+           """Authenticate with Citadel API and store token."""
+           pass
+   
+       def _make_request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
+           """Make authenticated request to Citadel API."""
+           pass
+   ```
+
+2. **Implementar métodos de autenticación**
+3. **Implementar métodos de gift cards**
+4. **Implementar manejo de errores**
+
+### Fase 3: Modelos de Datos
+
+1. **Crear modelos Django**
+   ```python
+   # cardholder/apps/citadel_integration/models.py
+   from django.db import models
+   from django.contrib.auth import get_user_model
+   
+   User = get_user_model()
+   
+   class CitadelTransaction(models.Model):
+       user = models.ForeignKey(User, on_delete=models.CASCADE)
+       transaction_id = models.CharField(max_length=255, unique=True)
+       transaction_type = models.CharField(max_length=10, choices=[
+           ('PUSH', 'Venta'),
+           ('PULL', 'Compra')
+       ])
+       status = models.CharField(max_length=20, choices=[
+           ('PENDING', 'Pendiente'),
+           ('COMPLETED', 'Completado'),
+           ('FAILED', 'Fallido'),
+           ('CANCELLED', 'Cancelado')
+       ])
+       amount = models.DecimalField(max_digits=10, decimal_places=2)
+       currency = models.CharField(max_length=3, default='USD')
+       gift_card_type = models.CharField(max_length=100)
+       created_at = models.DateTimeField(auto_now_add=True)
+       updated_at = models.DateTimeField(auto_now=True)
+   ```
+
+### Fase 4: Servicios de Negocio
+
+1. **Crear servicios**
+   ```python
+   # cardholder/apps/citadel_integration/services.py
+   from .client import CitadelAPIClient
+   from .models import CitadelTransaction
+   
+   class GiftCardService:
+       def __init__(self):
+           self.client = CitadelAPIClient()
+   
+       def sell_gift_card(self, user, gift_card_data):
+           """Sell a gift card through Citadel API."""
+           pass
+   
+       def buy_gift_card(self, user, gift_card_data):
+           """Buy a gift card through Citadel API."""
+           pass
+   
+       def get_available_gift_cards(self, user):
+           """Get available gift cards for purchase."""
+           pass
+   ```
+
+### Fase 5: APIs REST
+
+1. **Crear serializers**
+2. **Crear views**
+3. **Configurar URLs**
+4. **Implementar permisos**
+
+### Fase 6: Frontend
+
+1. **Crear templates**
+2. **Implementar JavaScript**
+3. **Crear formularios**
+4. **Implementar validaciones**
+
+### Fase 7: Testing
+
+1. **Tests unitarios**
+2. **Tests de integración**
+3. **Tests de API**
+4. **Tests de frontend**
+
+## Modelos de Datos
+
+### Diagrama de Clases UML
+
+```mermaid
+classDiagram
+    class User {
+        +id: UUID
+        +username: str
+        +email: str
+        +is_active: bool
+        +created_at: datetime
+    }
+    
+    class CitadelTransaction {
+        +id: UUID
+        +user_id: UUID
+        +transaction_id: str
+        +transaction_type: str
+        +status: str
+        +amount: Decimal
+        +currency: str
+        +gift_card_type: str
+        +citadel_response: JSON
+        +created_at: datetime
+        +updated_at: datetime
+        +get_status_display()
+        +is_completed()
+    }
+    
+    class CitadelGiftCard {
+        +id: UUID
+        +transaction_id: UUID
+        +code: str
+        +pin: str
+        +cvv: str
+        +expiration_date: date
+        +value: Decimal
+        +status: str
+        +created_at: datetime
+        +is_valid()
+        +get_masked_code()
+    }
+    
+    class CitadelAPIClient {
+        +base_url: str
+        +session: Session
+        +token: str
+        +authenticate(username, password)
+        +create_payment(payment_data)
+        +get_available_cards()
+        +sell_cards(cards_data)
+        +purchase_cards(cards_data)
+        +_make_request(method, endpoint)
+    }
+    
+    class GiftCardService {
+        +client: CitadelAPIClient
+        +sell_gift_card(user, gift_card_data)
+        +buy_gift_card(user, gift_card_data)
+        +get_available_gift_cards(user)
+        +validate_gift_card_data(data)
+        +process_transaction(transaction)
+    }
+    
+    class PaymentService {
+        +process_payment(transaction)
+        +validate_payment_data(data)
+        +handle_payment_response(response)
+        +refund_payment(transaction)
+    }
+    
+    class NotificationService {
+        +send_transaction_notification(user, transaction)
+        +send_error_notification(user, error)
+        +send_success_notification(user, transaction)
+    }
+    
+    class AuditService {
+        +log_transaction(transaction)
+        +log_api_call(endpoint, request, response)
+        +log_error(error, context)
+        +get_transaction_history(user)
+    }
+    
+    User ||--o{ CitadelTransaction : "has many"
+    CitadelTransaction ||--o{ CitadelGiftCard : "contains"
+    GiftCardService --> CitadelAPIClient : "uses"
+    GiftCardService --> CitadelTransaction : "creates"
+    PaymentService --> CitadelTransaction : "processes"
+    NotificationService --> CitadelTransaction : "notifies"
+    AuditService --> CitadelTransaction : "logs"
+```
+
+### Descripción de Modelos
+
+#### CitadelTransaction
+- `user`: Usuario que realiza la transacción
+- `transaction_id`: ID único de la transacción
+- `transaction_type`: Tipo (PUSH/PULL)
+- `status`: Estado de la transacción
+- `amount`: Monto de la transacción
+- `currency`: Moneda
+- `gift_card_type`: Tipo de gift card
+- `citadel_response`: Respuesta completa de Citadel
+- `created_at`: Fecha de creación
+- `updated_at`: Fecha de actualización
+
+#### CitadelGiftCard
+- `transaction`: Transacción relacionada
+- `code`: Código de la gift card
+- `pin`: PIN (si aplica)
+- `cvv`: CVV (si aplica)
+- `expiration_date`: Fecha de expiración
+- `value`: Valor de la gift card
+- `status`: Estado de la gift card
+
+## Manejo de Errores
+
+### Tipos de Errores
+
+1. **Errores de Autenticación**
+   - Token expirado
+   - Credenciales inválidas
+   - Permisos insuficientes
+
+2. **Errores de Validación**
+   - Datos de gift card inválidos
+   - Formato incorrecto
+   - Valores fuera de rango
+
+3. **Errores de API**
+   - Servicio no disponible
+   - Timeout
+   - Respuesta inválida
+
+4. **Errores de Negocio**
+   - Gift card ya utilizada
+   - Saldo insuficiente
+   - Límites excedidos
+
+### Estrategia de Manejo
+
+1. **Retry Logic**: Reintentar operaciones fallidas
+2. **Circuit Breaker**: Evitar cascadas de fallos
+3. **Logging**: Registrar todos los errores
+4. **Notificaciones**: Alertar sobre errores críticos
+5. **Fallback**: Proporcionar alternativas cuando sea posible
+
+## Consideraciones de Seguridad
+
+### Autenticación y Autorización
+
+1. **Tokens de Acceso**
+   - Almacenar tokens de forma segura
+   - Implementar renovación automática
+   - Validar permisos por operación
+
+2. **Datos Sensibles**
+   - Encriptar gift card codes
+   - No almacenar PINs/CVVs en texto plano
+   - Usar HTTPS para todas las comunicaciones
+
+3. **Validación de Entrada**
+   - Sanitizar todos los inputs
+   - Validar formatos de gift cards
+   - Implementar rate limiting
+
+### Cumplimiento
+
+1. **PCI DSS**: Para manejo de datos de tarjetas
+2. **GDPR**: Para protección de datos personales
+3. **Auditoría**: Registrar todas las operaciones
+4. **Backup**: Respaldo seguro de datos críticos
+
+## Testing y Validación
+
+### Estrategia de Testing
+
+1. **Unit Tests**
+   - Testear cada método individualmente
+   - Mockear llamadas a API externa
+   - Validar lógica de negocio
+
+2. **Integration Tests**
+   - Testear flujos completos
+   - Usar API de staging
+   - Validar respuestas reales
+
+3. **End-to-End Tests**
+   - Testear desde frontend hasta API
+   - Simular escenarios reales
+   - Validar experiencia de usuario
+
+### Herramientas
+
+1. **pytest**: Framework de testing
+2. **requests-mock**: Mock de requests HTTP
+3. **factory_boy**: Generación de datos de prueba
+4. **selenium**: Testing de frontend
+
+### Casos de Prueba
+
+1. **Autenticación exitosa**
+2. **Venta de gift card exitosa**
+3. **Compra de gift card exitosa**
+4. **Manejo de errores de API**
+5. **Validación de datos**
+6. **Flujos de error**
+
+## Monitoreo y Logging
+
+### Métricas Clave
+
+1. **Transacciones por minuto**
+2. **Tasa de éxito/fallo**
+3. **Tiempo de respuesta**
+4. **Errores por tipo**
+5. **Uso de API**
+
+### Alertas
+
+1. **Errores críticos**
+2. **Tiempo de respuesta alto**
+3. **Tasa de fallo elevada**
+4. **Problemas de autenticación**
+
+### Logging
+
+1. **Todas las llamadas a API**
+2. **Transacciones completadas**
+3. **Errores y excepciones**
+4. **Cambios de estado**
+
+## Conclusión
+
+Esta integración permitirá a los usuarios de Cryptospace Card Holder comprar y vender gift cards de manera automatizada y segura a través de la API de Citadel Services. La implementación seguirá las mejores prácticas de desarrollo, seguridad y testing para asegurar una integración robusta y confiable.
+
+La documentación proporcionada sirve como guía completa para la implementación, desde la configuración inicial hasta el despliegue en producción, incluyendo consideraciones de seguridad, testing y monitoreo.
+
