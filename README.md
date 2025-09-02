@@ -1778,13 +1778,13 @@ classDiagram
         +get_transaction_history(user)
     }
     
-    User ||--o{ CitadelTransaction : "has many"
-    CitadelTransaction ||--o{ CitadelGiftCard : "contains"
-    GiftCardService --> CitadelAPIClient : "uses"
-    GiftCardService --> CitadelTransaction : "creates"
-    PaymentService --> CitadelTransaction : "processes"
-    NotificationService --> CitadelTransaction : "notifies"
-    AuditService --> CitadelTransaction : "logs"
+    User ||--o{ CitadelTransaction : has_many
+    CitadelTransaction ||--o{ CitadelGiftCard : contains
+    GiftCardService --> CitadelAPIClient : uses
+    GiftCardService --> CitadelTransaction : creates
+    PaymentService --> CitadelTransaction : processes
+    NotificationService --> CitadelTransaction : notifies
+    AuditService --> CitadelTransaction : logs
 ```
 
 ### Descripción de Modelos
