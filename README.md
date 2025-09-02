@@ -1110,6 +1110,9 @@ graph TB
 
 
 
+
+
+
 # Integración API Citadel - Documentación Técnica
 
 ## Tabla de Contenidos
@@ -1778,13 +1781,13 @@ classDiagram
         +get_transaction_history(user)
     }
     
-    User ||--o{ CitadelTransaction : has_many
-    CitadelTransaction ||--o{ CitadelGiftCard : contains
-    GiftCardService --> CitadelAPIClient : uses
-    GiftCardService --> CitadelTransaction : creates
-    PaymentService --> CitadelTransaction : processes
-    NotificationService --> CitadelTransaction : notifies
-    AuditService --> CitadelTransaction : logs
+    User ||--o{ CitadelTransaction
+    CitadelTransaction ||--o{ CitadelGiftCard
+    GiftCardService --> CitadelAPIClient
+    GiftCardService --> CitadelTransaction
+    PaymentService --> CitadelTransaction
+    NotificationService --> CitadelTransaction
+    AuditService --> CitadelTransaction
 ```
 
 ### Descripción de Modelos
@@ -1932,4 +1935,7 @@ classDiagram
 Esta integración permitirá a los usuarios de Cryptospace Card Holder comprar y vender gift cards de manera automatizada y segura a través de la API de Citadel Services. La implementación seguirá las mejores prácticas de desarrollo, seguridad y testing para asegurar una integración robusta y confiable.
 
 La documentación proporcionada sirve como guía completa para la implementación, desde la configuración inicial hasta el despliegue en producción, incluyendo consideraciones de seguridad, testing y monitoreo.
+
+
+
 
